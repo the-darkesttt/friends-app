@@ -1,6 +1,7 @@
 const usersList = document.querySelector('.users-list');
 const sortBar = document.querySelector('.sort-bar');
 const searchBar = document.querySelector('.sort-bar__search');
+const paginationList = document.querySelector('.pagination-list');
 
 const allRadioBtns = document.querySelectorAll('input[type="radio"]');
 const genderRadioBtns = document.querySelectorAll('input[name="gender"]');
@@ -9,7 +10,10 @@ const alphabetRadioBtns = document.querySelectorAll('input[name="alphabet"]');
 
 // get data
 
-const requestURL = 'https://randomuser.me/api/?results=12&exc=location,login,registered,cell,id,nat';
+let selectedPage = 1;
+
+const requestUsersNum = 24;
+const requestURL = `https://randomuser.me/api/?results=${requestUsersNum}&exc=location,login,registered,cell,id,nat`;
 
 function sendRequest (url) { 
     return fetch(url).then(response => {
@@ -27,7 +31,8 @@ sendRequest(requestURL)
 .then((serverData) => {
   initialFriendsArr = serverData.results;
   initialFriendsArr = createFriendsCopy(initialFriendsArr);
-  generateUsers(initialFriendsArr);
+  generateUsers(generatePage(initialFriendsArr));
+  createPaginationList(initialFriendsArr);
 })
 .catch((err) => {
     console.log(err);
@@ -90,6 +95,9 @@ function handleSorting(friends) {
     sortByName(friends)
     friends = resetToInitial(friends);
 
+    createPaginationList(friends);
+    friends = generatePage(friends)
+    
     generateUsers(friends);
 }
 
@@ -98,6 +106,7 @@ sortBar.addEventListener('click', ({target}) => {
 
     if (target.name === 'gender') {
         selectedGender = target.value;
+        selectedPage = 1;
     }
 
     if (target.name === 'age') {
@@ -138,14 +147,16 @@ function sortByInput(friendsCopy) {
             if (fullName.search(searchInputValue) !== -1) return true;
         });
         friendsCopy = [...filteredFriends];
-
+        
     } else {
         friendsCopy = [...initialFriendsArr];
     }
+    
     return friendsCopy;
 }
 
 function sortByGender(friendsCopy) {
+    
     switch(selectedGender) {
         case 'male':
         case 'female':
@@ -196,4 +207,50 @@ function resetToInitial(friendsCopy) {
         friendsCopy = [...initialFriendsArr];
     }
     return friendsCopy;
+}
+
+// pagination
+
+const userPerPageNum = 6;
+let pageNum;
+
+function createPaginationList(friendsCopy) {
+    if (Number.isInteger((friendsCopy.length) / userPerPageNum)) {
+        pageNum = (friendsCopy.length) / userPerPageNum;
+    } else {
+        pageNum = Math.round((friendsCopy.length) / userPerPageNum);
+    }
+
+    paginationList.innerHTML = '';
+    for (let i = 1; i <= pageNum; i++) {
+        const paginationListElem = document.createElement('LI');
+        const paginationLink = document.createElement('A')
+        paginationLink.setAttribute('href', '#');
+        paginationLink.dataset.pageNum = i;
+        paginationLink.innerHTML = i;
+        
+        if (i == selectedPage) {
+            paginationListElem.classList.add('selected-page');
+        }
+
+        paginationList.appendChild(paginationListElem);
+        paginationListElem.appendChild(paginationLink)
+        // тут много раз в цикле выполняется одна и та же операция - аппендчайлд. можно создать массив ли-шек, каждую из которых за одну операцию добавлять в ДОМ через простой аппенд
+    }
+};
+
+paginationList.addEventListener('click', ({target}) => {
+    friendsArrCopy = [...initialFriendsArr];
+    if (target.tagName === 'A') {
+        selectedPage = target.dataset.pageNum;
+    }
+    handleSorting(friendsArrCopy);
+});
+
+// нужно придумать нормалное имя
+function generatePage(friendsCopy) {
+    const sliceStart = userPerPageNum * (selectedPage - 1);
+    const sliceEnd = userPerPageNum + sliceStart;
+    const slicedUsersArr = friendsCopy.slice(sliceStart, sliceEnd);
+    return slicedUsersArr;
 }
