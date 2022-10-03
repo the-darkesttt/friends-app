@@ -10,8 +10,6 @@ const alphabetRadioBtns = document.querySelectorAll('input[name="alphabet"]');
 
 // get data
 
-let selectedPage = 1;
-
 const requestUsersNum = 24;
 const requestURL = `https://randomuser.me/api/?results=${requestUsersNum}&exc=location,login,registered,cell,id,nat`;
 
@@ -31,7 +29,7 @@ sendRequest(requestURL)
 .then((serverData) => {
   initialFriendsArr = serverData.results;
   initialFriendsArr = createFriendsCopy(initialFriendsArr);
-  generateUsers(generatePage(initialFriendsArr));
+  generateUsers(returnSelectedPage(initialFriendsArr));
   createPaginationList(initialFriendsArr);
 })
 .catch((err) => {
@@ -96,7 +94,7 @@ function handleSorting(friends) {
     friends = resetToInitial(friends);
 
     createPaginationList(friends);
-    friends = generatePage(friends)
+    friends = returnSelectedPage(friends);
     
     generateUsers(friends);
 }
@@ -212,19 +210,24 @@ function resetToInitial(friendsCopy) {
 // pagination
 
 const userPerPageNum = 6;
+let selectedPage = 1;
 let pageNum;
 
-function createPaginationList(friendsCopy) {
-    if (Number.isInteger((friendsCopy.length) / userPerPageNum)) {
-        pageNum = (friendsCopy.length) / userPerPageNum;
+function countPages(friendsCopy) {
+    if (Number.isInteger(friendsCopy.length / userPerPageNum)) {
+        pageNum = friendsCopy.length / userPerPageNum;
     } else {
-        pageNum = Math.round((friendsCopy.length) / userPerPageNum);
+        pageNum = Math.round(friendsCopy.length / userPerPageNum);
     }
+}
+
+function createPaginationList(friendsCopy) {
+    countPages(friendsCopy);
 
     paginationList.innerHTML = '';
     for (let i = 1; i <= pageNum; i++) {
         const paginationListElem = document.createElement('LI');
-        const paginationLink = document.createElement('A')
+        const paginationLink = document.createElement('A');
         paginationLink.setAttribute('href', '#');
         paginationLink.dataset.pageNum = i;
         paginationLink.innerHTML = i;
@@ -234,8 +237,7 @@ function createPaginationList(friendsCopy) {
         }
 
         paginationList.appendChild(paginationListElem);
-        paginationListElem.appendChild(paginationLink)
-        // тут много раз в цикле выполняется одна и та же операция - аппендчайлд. можно создать массив ли-шек, каждую из которых за одну операцию добавлять в ДОМ через простой аппенд
+        paginationListElem.appendChild(paginationLink);
     }
 };
 
@@ -247,8 +249,7 @@ paginationList.addEventListener('click', ({target}) => {
     handleSorting(friendsArrCopy);
 });
 
-// нужно придумать нормалное имя
-function generatePage(friendsCopy) {
+function returnSelectedPage(friendsCopy) {
     const sliceStart = userPerPageNum * (selectedPage - 1);
     const sliceEnd = userPerPageNum + sliceStart;
     const slicedUsersArr = friendsCopy.slice(sliceStart, sliceEnd);
